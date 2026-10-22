@@ -1,6 +1,11 @@
-# 构建时间: 2026-10-22T09:38:48Z
+# 构建时间: 2026-10-22T10:02:32Z
 
 # 内网域名
 host-suffix, centaline.com
 host-suffix, centaline.com.cn
 host-suffix, centanet.com
+# 其他
+host-suffix, qianjiapp.com
+host-suffix, xxoojoke.com
+host-suffix, litangkj.com
+host-suffix, qianjibillimage.kodo-accelerate.cn-south-1.qiniucs.com

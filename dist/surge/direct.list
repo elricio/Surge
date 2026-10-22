@@ -1,6 +1,11 @@
-# 构建时间: 2026-10-22T09:38:48Z
+# 构建时间: 2026-10-22T10:02:32Z
 
 # 内网域名
 DOMAIN-SUFFIX,centaline.com
 DOMAIN-SUFFIX,centaline.com.cn
 DOMAIN-SUFFIX,centanet.com
+# 其他
+DOMAIN-SUFFIX,qianjiapp.com
+DOMAIN-SUFFIX,xxoojoke.com
+DOMAIN-SUFFIX,litangkj.com
+DOMAIN-SUFFIX,qianjibillimage.kodo-accelerate.cn-south-1.qiniucs.com
