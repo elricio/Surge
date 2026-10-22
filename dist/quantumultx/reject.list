@@ -1,0 +1,2 @@
+url-regex, ^https:\/\/api\.zhihu\.com\/account\/attach_info$
+url-regex, ^https:\/\/www\.zhihu\.com\/sc-profiler-zhapp$

@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "domain_suffix": [
+        "centaline.com",
+        "centaline.com.cn",
+        "centanet.com"
+      ]
+    }
+  ]
+}
