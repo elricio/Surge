@@ -1,4 +1,6 @@
+# 构建时间: 2026-10-22T09:28:45Z
 payload:
+  # 内网域名
   - "DOMAIN-SUFFIX,centaline.com"
   - "DOMAIN-SUFFIX,centaline.com.cn"
   - "DOMAIN-SUFFIX,centanet.com"

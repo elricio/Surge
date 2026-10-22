@@ -1,7 +1,7 @@
 """Surge 规则集解析与规范化。
 
-源文件统一使用 Surge 语法（`TYPE,value[,options]`），本模块只负责把它
-解析成结构化的 Rule，并做去重与冗余剪枝，不关心输出格式。
+源文件统一使用 Surge 语法（`TYPE,value[,options]`），本模块负责把它解析成
+Rule 与 Comment 的序列，并做去重与冗余剪枝，不关心输出格式。
 """
 
 from __future__ import annotations
@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+from typing import Union
 
 
 class RuleType(str, Enum):
@@ -51,11 +52,23 @@ class Rule:
         return self.type, self.value.lower()
 
 
-def parse_line(line: str, where: str = "") -> Rule | None:
-    """解析单行规则，注释和空行返回 None，语法错误抛 ValueError。"""
+@dataclass(frozen=True)
+class Comment:
+    """源文件中的注释，text 不含前导的 # 或 ;。"""
+
+    text: str
+
+
+Token = Union[Rule, Comment]
+
+
+def parse_line(line: str, where: str = "") -> Rule | Comment | None:
+    """解析单行，空行返回 None，语法错误抛 ValueError。"""
     stripped = line.strip()
-    if not stripped or stripped[0] in "#;":
+    if not stripped:
         return None
+    if stripped[0] in "#;":
+        return Comment(stripped[1:].strip())
 
     raw_type, sep, raw_rest = stripped.partition(",")
     if not sep:
@@ -78,40 +91,60 @@ def parse_line(line: str, where: str = "") -> Rule | None:
     return Rule(rule_type, value, options)
 
 
-def load(path: Path) -> list[Rule]:
-    """读取规则文件，出错时抛 ValueError 并带上文件名和行号。"""
-    rules: list[Rule] = []
+def load(path: Path) -> list[Token]:
+    """读取规则文件，保留注释与顺序，出错时抛 ValueError 并带上文件名和行号。"""
+    tokens: list[Token] = []
     for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-        rule = parse_line(line, f"{path.name}:{lineno}")
-        if rule is not None:
-            rules.append(rule)
-    return rules
+        token = parse_line(line, f"{path.name}:{lineno}")
+        if token is not None:
+            tokens.append(token)
+    return tokens
 
 
-def normalize(rules: list[Rule]) -> list[Rule]:
-    """去重，并删除已被同一文件内 DOMAIN-SUFFIX 覆盖的规则。"""
-    unique: list[Rule] = []
+def normalize(tokens: list[Token]) -> list[Token]:
+    """去重并剪枝，注释跟随其后第一条被保留的规则。
+
+    被剪枝规则前的注释会顺延到下一条保留规则，避免出现指向空处的孤立注释；
+    文件末尾没有后续规则的注释会被丢弃。
+    """
+    suffixes = {
+        token.value.lower()
+        for token in tokens
+        if isinstance(token, Rule) and token.type is RuleType.DOMAIN_SUFFIX
+    }
+
     seen: set[tuple[RuleType, str]] = set()
-    for rule in rules:
-        key = rule.key()
+    candidates: list[tuple[int, Rule]] = []
+    for index, token in enumerate(tokens):
+        if not isinstance(token, Rule):
+            continue
+        key = token.key()
         if key in seen:
             continue
         seen.add(key)
-        unique.append(rule)
+        candidates.append((index, token))
 
-    suffixes = {r.value.lower() for r in unique if r.type is RuleType.DOMAIN_SUFFIX}
-
-    def covered(domain: str, skip_self: bool) -> bool:
-        parts = domain.lower().split(".")
+    def covered(value: str, skip_self: bool) -> bool:
+        parts = value.lower().split(".")
         # skip_self 用于 DOMAIN-SUFFIX 自身：只检查更短的父后缀是否已覆盖它
         start = 1 if skip_self else 0
         return any(".".join(parts[i:]) in suffixes for i in range(start, len(parts)))
 
-    result: list[Rule] = []
-    for rule in unique:
+    kept: set[int] = set()
+    for index, rule in candidates:
         if rule.type is RuleType.DOMAIN and covered(rule.value, skip_self=False):
             continue
         if rule.type is RuleType.DOMAIN_SUFFIX and covered(rule.value, skip_self=True):
             continue
-        result.append(rule)
+        kept.add(index)
+
+    result: list[Token] = []
+    pending: list[Comment] = []
+    for index, token in enumerate(tokens):
+        if isinstance(token, Comment):
+            pending.append(token)
+        elif index in kept:
+            result.extend(pending)
+            pending.clear()
+            result.append(token)
     return result

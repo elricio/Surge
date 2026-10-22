@@ -1,14 +1,15 @@
-"""把 Rule 序列渲染成各客户端的规则集格式。
+"""把 Token 序列渲染成各客户端的规则集格式。
 
 每个 emitter 返回 (文本, 被跳过的规则)，被跳过的规则会在构建时告警，
-不会静默丢弃。
+不会静默丢弃。sing-box 的 JSON 格式不支持注释，该客户端的注释与构建时间
+会被忽略。
 """
 
 from __future__ import annotations
 
 import json
 
-from rule import Rule, RuleType
+from rule import Comment, Rule, RuleType, Token
 
 _ALL = frozenset(RuleType)
 
@@ -58,55 +59,94 @@ _SINGBOX_FIELDS = {
 }
 
 
-def _format(
-    rules: list[Rule],
+def _comment(text: str, indent: str = "") -> str:
+    return f"{indent}# {text}".rstrip()
+
+
+def _render(
+    tokens: list[Token],
     supported: frozenset[RuleType] | set[RuleType],
     names: dict[RuleType, str] | None = None,
     sep: str = ",",
 ) -> tuple[list[str], list[Rule]]:
     lines: list[str] = []
     skipped: list[Rule] = []
-    for rule in rules:
-        if rule.type not in supported:
-            skipped.append(rule)
+    for token in tokens:
+        if isinstance(token, Comment):
+            lines.append(_comment(token.text))
             continue
-        name = rule.type.value if names is None else names[rule.type]
-        lines.append(sep.join((name, rule.value, *rule.options)))
+        if token.type not in supported:
+            skipped.append(token)
+            continue
+        name = token.type.value if names is None else names[token.type]
+        lines.append(sep.join((name, token.value, *token.options)))
     return lines, skipped
 
 
-def surge(rules: list[Rule]) -> tuple[str, list[Rule]]:
-    lines, skipped = _format(rules, _ALL)
+def _plain(
+    tokens: list[Token],
+    supported: frozenset[RuleType] | set[RuleType],
+    names: dict[RuleType, str] | None = None,
+    sep: str = ",",
+    header: str | None = None,
+) -> tuple[str, list[Rule]]:
+    lines, skipped = _render(tokens, supported, names, sep)
+    if header:
+        lines.insert(0, _comment(header))
+        if len(lines) > 1:
+            lines.insert(1, "")
     return "\n".join(lines) + ("\n" if lines else ""), skipped
 
 
-def loon(rules: list[Rule]) -> tuple[str, list[Rule]]:
-    lines, skipped = _format(rules, _LOON_SUPPORTED)
-    return "\n".join(lines) + ("\n" if lines else ""), skipped
+def surge(tokens: list[Token], header: str | None = None) -> tuple[str, list[Rule]]:
+    return _plain(tokens, _ALL, header=header)
 
 
-def clash(rules: list[Rule]) -> tuple[str, list[Rule]]:
-    lines, skipped = _format(rules, _CLASH_SUPPORTED)
-    if not lines:
-        return "payload: []\n", skipped
-    # json.dumps 生成的字符串是合法 YAML 双引号标量，可以安全处理正则里的特殊字符
-    body = "\n".join(f"  - {json.dumps(line, ensure_ascii=False)}" for line in lines)
-    return f"payload:\n{body}\n", skipped
+def loon(tokens: list[Token], header: str | None = None) -> tuple[str, list[Rule]]:
+    return _plain(tokens, _LOON_SUPPORTED, header=header)
 
 
-def quantumultx(rules: list[Rule]) -> tuple[str, list[Rule]]:
-    lines, skipped = _format(rules, set(_QX_TYPES), names=_QX_TYPES, sep=", ")
-    return "\n".join(lines) + ("\n" if lines else ""), skipped
+def quantumultx(tokens: list[Token], header: str | None = None) -> tuple[str, list[Rule]]:
+    return _plain(tokens, set(_QX_TYPES), names=_QX_TYPES, sep=", ", header=header)
 
 
-def singbox(rules: list[Rule]) -> tuple[str, list[Rule]]:
+def clash(tokens: list[Token], header: str | None = None) -> tuple[str, list[Rule]]:
+    rows: list[str] = []
+    skipped: list[Rule] = []
+    has_rules = False
+
+    for token in tokens:
+        if isinstance(token, Comment):
+            rows.append(_comment(token.text, indent="  "))
+            continue
+        if token.type not in _CLASH_SUPPORTED:
+            skipped.append(token)
+            continue
+        has_rules = True
+        # json.dumps 生成的字符串是合法 YAML 双引号标量，可以安全处理正则里的特殊字符
+        line = ",".join((token.type.value, token.value, *token.options))
+        rows.append(f"  - {json.dumps(line, ensure_ascii=False)}")
+
+    head = _comment(header) + "\n" if header else ""
+    if not has_rules:
+        body = "\n".join(rows)
+        if body:
+            return f"{head}{body}\npayload: []\n", skipped
+        return f"{head}payload: []\n", skipped
+
+    return f"{head}payload:\n" + "\n".join(rows) + "\n", skipped
+
+
+def singbox(tokens: list[Token], header: str | None = None) -> tuple[str, list[Rule]]:
     groups: dict[str, list[str]] = {}
     skipped: list[Rule] = []
-    for rule in rules:
-        field = _SINGBOX_FIELDS.get(rule.type)
-        if field is None:
-            skipped.append(rule)
+    for token in tokens:
+        if isinstance(token, Comment):
             continue
-        groups.setdefault(field, []).append(rule.value)
+        field = _SINGBOX_FIELDS.get(token.type)
+        if field is None:
+            skipped.append(token)
+            continue
+        groups.setdefault(field, []).append(token.value)
     payload = {"version": 1, "rules": [{name: values} for name, values in groups.items()]}
     return json.dumps(payload, ensure_ascii=False, indent=2) + "\n", skipped

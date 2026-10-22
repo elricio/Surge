@@ -1,2 +1,5 @@
+# 构建时间: 2026-10-22T09:28:45Z
+
+# 知乎广告
 url-regex, ^https:\/\/api\.zhihu\.com\/account\/attach_info$
 url-regex, ^https:\/\/www\.zhihu\.com\/sc-profiler-zhapp$

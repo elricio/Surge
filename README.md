@@ -32,6 +32,8 @@ URL-REGEX,^https:\/\/api\.example\.com\/ad$
 
 构建时会做两件事：同一文件内去重；删除已被本文件 `DOMAIN-SUFFIX` 覆盖的 `DOMAIN` 和子级 `DOMAIN-SUFFIX`。
 
+源文件里的 `#` 注释会原样带到产物中，被剪枝规则前的注释会顺延到下一条保留规则；产物开头会写入一行 UTC 构建时间。sing-box 的 JSON 格式不支持注释，该格式只输出规则本身。
+
 push 到 main 后 GitHub Actions 自动重新生成 `dist/` 并提交回来。本地预览：
 
 ```bash
@@ -133,7 +135,8 @@ https://raw.githubusercontent.com/elricio/proxy-rules/main/dist/quantumultx/reje
 | `PROCESS-NAME` | ✅ | ✅ | ❌ | ✅ |
 | `DST-PORT` / `SRC-PORT` | ✅ | ✅ | ❌ | ❌ |
 
-另外两条行为约定：
+其他约定：
 
+- sing-box 的 JSON 规则集不支持注释，`dist/singbox/*.json` 不含源注释与构建时间。
 - 出现未知规则类型时构建会直接失败并指出文件行号，避免拼写错误导致规则被静默丢弃。
 - `dist/` 是生成物，改源文件后由 Actions 覆盖，手改会在下次构建时丢失。
