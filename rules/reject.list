@@ -1,3 +1,5 @@
 # 知乎广告
+# Added for: https://api.zhihu.com/account/attach_info
 URL-REGEX,^https:\/\/api\.zhihu\.com\/account\/attach_info$
+# Added for: https://www.zhihu.com/sc-profiler-zhapp
 URL-REGEX,^https:\/\/www\.zhihu\.com\/sc-profiler-zhapp$
