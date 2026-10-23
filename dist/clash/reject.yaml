@@ -1,7 +1,5 @@
-# 构建时间: 2026-10-22T10:02:32Z
-payload:
+# 构建时间: 2026-10-23T07:40:58Z
   # 知乎广告
   # Added for: https://api.zhihu.com/account/attach_info
-  - "URL-REGEX,^https:\\/\\/api\\.zhihu\\.com\\/account\\/attach_info$"
   # Added for: https://www.zhihu.com/sc-profiler-zhapp
-  - "URL-REGEX,^https:\\/\\/www\\.zhihu\\.com\\/sc-profiler-zhapp$"
+payload: []
