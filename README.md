@@ -125,11 +125,12 @@ https://raw.githubusercontent.com/elricio/proxy-rules/main/dist/quantumultx/reje
 
 ## 已知限制
 
-格式差异无法完全抹平，生成时会跳过不支持的规则并在构建日志里告警：
+格式差异无法完全抹平，生成时会跳过不支持的规则并在构建日志里告警。下表 Clash 一列以 mihomo 1.19 实测为准：
 
 | 规则类型 | Loon | Clash | QX | sing-box |
 |---|---|---|---|---|
-| `URL-REGEX` | ✅ | ✅ | ✅ `url-regex` | ❌ 无等价语义 |
+| `URL-REGEX` | ✅ | ❌ 实测不支持 | ✅ `url-regex` | ❌ 无等价语义 |
+| `USER-AGENT` | ✅ | ❌ 实测不支持 | ✅ `user-agent` | ❌ 无等价语义 |
 | `DOMAIN-REGEX` | ❌ | ✅ | ❌ | ✅ `domain_regex` |
 | `GEOIP` | ✅ | ✅ | ✅ | ❌ 改用 rule-set |
 | `PROCESS-NAME` | ✅ | ✅ | ❌ | ✅ |

@@ -31,8 +31,9 @@ _LOON_SUPPORTED = frozenset(
     }
 )
 
-# mihomo / Clash Premium 支持的类型集合。
-_CLASH_SUPPORTED = _ALL
+# mihomo / Clash Meta 支持的类型集合。
+# 实测 mihomo 1.19 不接受 URL-REGEX 与 USER-AGENT，provider 解析时会直接丢弃这两类规则。
+_CLASH_SUPPORTED = _ALL - {RuleType.URL_REGEX, RuleType.USER_AGENT}
 
 # Quantumult X 用小写类型名，且类型名与 Surge 不同。
 _QX_TYPES = {
